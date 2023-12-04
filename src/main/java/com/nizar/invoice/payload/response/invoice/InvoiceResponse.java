@@ -16,5 +16,5 @@ public class InvoiceResponse {
     private String invoice_id;
     private Date due_date;
     private double total_price;
-    private Set<Item> items;
+    private Set<InvoiceItemResponse> items;
 }
