@@ -1,14 +1,12 @@
 package com.nizar.invoice.payload.request.invoice;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class InvoiceItemRequest {
     private Long itemId;
     private int quantity;

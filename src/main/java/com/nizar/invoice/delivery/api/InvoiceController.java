@@ -1,7 +1,9 @@
 package com.nizar.invoice.delivery.api;
 
 import com.nizar.invoice.exception.ResourceNotFoundException;
+import com.nizar.invoice.payload.request.invoice.InvoiceDeleteRequest;
 import com.nizar.invoice.payload.request.invoice.InvoiceRequest;
+import com.nizar.invoice.payload.request.invoice.InvoiceUpdateRequest;
 import com.nizar.invoice.payload.response.invoice.InvoiceResponse;
 import com.nizar.invoice.usecase.InvoiceUsecase;
 import org.slf4j.Logger;
@@ -58,7 +60,7 @@ public class InvoiceController {
 
             InvoiceResponse response = invoiceUsecase.createInvoice(request);
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
         } catch (ResourceNotFoundException e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }catch (Exception e) {
@@ -66,6 +68,39 @@ public class InvoiceController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+    }
+
+
+
+    @PostMapping("/invoice/delete")
+    public ResponseEntity<InvoiceResponse> deleteOneInvoice(@RequestBody InvoiceDeleteRequest request) {
+        try {
+
+            invoiceUsecase.deleteOneInvoice(request);
+
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+    }
+
+    @PostMapping("/invoice/update")
+    public ResponseEntity<InvoiceResponse> updateInvoice(@RequestBody InvoiceUpdateRequest request) {
+        try {
+
+            InvoiceResponse response = invoiceUsecase.updateInvoice(request);
+
+            return new ResponseEntity<>(response, HttpStatus.CREATED);
+        } catch (ResourceNotFoundException e) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
 
     }
 }

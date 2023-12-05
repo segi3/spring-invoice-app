@@ -1,21 +1,29 @@
 package com.nizar.invoice.usecase;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.nizar.invoice.configuration.security.jwt.AuthEntryPointJwt;
 import com.nizar.invoice.exception.ResourceNotFoundException;
 import com.nizar.invoice.models.Invoice;
 import com.nizar.invoice.models.InvoiceItem;
 import com.nizar.invoice.models.Item;
 import com.nizar.invoice.models.User;
+import com.nizar.invoice.payload.request.invoice.InvoiceDeleteRequest;
 import com.nizar.invoice.payload.request.invoice.InvoiceItemRequest;
 import com.nizar.invoice.payload.request.invoice.InvoiceRequest;
+import com.nizar.invoice.payload.request.invoice.InvoiceUpdateRequest;
 import com.nizar.invoice.payload.response.invoice.InvoiceItemResponse;
 import com.nizar.invoice.payload.response.invoice.InvoiceResponse;
 import com.nizar.invoice.repository.InvoiceItemRepository;
 import com.nizar.invoice.repository.InvoiceRepository;
 import com.nizar.invoice.repository.ItemRepository;
 import com.nizar.invoice.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,6 +31,9 @@ import java.util.*;
 
 @Component
 public class InvoiceUsecase {
+
+    private static final Logger log = LoggerFactory.getLogger(InvoiceUsecase.class);
+    public static final Gson gson = new GsonBuilder().create();
 
     @Autowired
     private InvoiceRepository invoiceRepository;
@@ -78,12 +89,15 @@ public class InvoiceUsecase {
 
         // create invoice items
         Set<InvoiceItem> invoiceItems = new HashSet<>();
-        Set<Item> items = new HashSet<>();
+
         for (InvoiceItemRequest item:request.getInvoiceItems()) {
             Item temp = itemRepository.findById(item.getItemId()).orElseThrow(() -> new ResourceNotFoundException("user not found"));
-            InvoiceItem invoiceItemTemp = new InvoiceItem(invoice, temp, item.getQuantity());
+            InvoiceItem invoiceItemTemp = InvoiceItem.builder()
+                    .item(temp)
+                    .invoice(invoice)
+                    .quantity(item.getQuantity())
+                    .build();
             invoiceItems.add(invoiceItemTemp);
-            items.add(temp);
 
             totalPrice = totalPrice + (temp.getPrice() * item.getQuantity());
         }
@@ -99,12 +113,92 @@ public class InvoiceUsecase {
         return generateInvoiceResponse(invoice);
     }
 
+    @Transactional
+    public void deleteOneInvoice(InvoiceDeleteRequest request) {
+        try {
+            Invoice invoice = invoiceRepository.findById(UUID.fromString(request.getInvoiceId()))
+                    .orElseThrow(() -> new ResourceAccessException("Invoice not found"));
+
+            Set<InvoiceItem> invoiceItems = invoice.getInvoiceItems();
+
+            for (InvoiceItem iit : invoiceItems) {
+                invoiceItemRepository.deleteById(iit.getId());
+            }
+
+            invoiceRepository.deleteById(invoice.getId());
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    public InvoiceResponse updateInvoice(InvoiceUpdateRequest request) throws ParseException {
+        try {
+            // check if invoice exists
+            Invoice invoice = invoiceRepository.findById(UUID.fromString(request.getInvoiceId()))
+                    .orElseThrow(() -> new ResourceAccessException("Invoice not found"));
+
+            // check if user exists
+            User user = userRepository.findById(request.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("user not found"));
+
+            // update invoice data
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss.SSS");
+            Date parsedDate = dateFormat.parse(request.getDueDate());
+            double totalPrice = 0;
+
+            invoice.setDueDate(parsedDate);
+            invoice.setUser(user);
+
+            // delete existing invoice items
+            Set<InvoiceItem> invoiceItemsOld = invoice.getInvoiceItems();
+            invoiceItemRepository.deleteAll(invoiceItemsOld);
+
+            // create new invoice items
+            Set<InvoiceItem> invoiceItemsNew = new HashSet<>();
+
+            log.info("request item : {}", gson.toJson(request.getInvoiceItems()));
+
+            for (InvoiceItemRequest item:request.getInvoiceItems()) {
+                Item temp = itemRepository.findById(item.getItemId()).orElseThrow(() -> new ResourceNotFoundException("item not found"));
+                InvoiceItem invoiceItemTemp = InvoiceItem.builder()
+                        .item(temp)
+                        .invoice(invoice)
+                        .quantity(item.getQuantity())
+                        .build();
+                invoiceItemsNew.add(invoiceItemTemp);
+                invoiceItemRepository.save(invoiceItemTemp);
+
+                log.info("invoice id : {}", invoiceItemTemp.getInvoice().getId());
+                log.info("item id : {}", invoiceItemTemp.getItem().getId());
+                log.info("quantity : {}", invoiceItemTemp.getQuantity());
+
+                totalPrice = totalPrice + (temp.getPrice() * item.getQuantity());
+            }
+
+            // append invoice item to invoice
+            invoice.setInvoiceItems(invoiceItemsNew);
+            invoice.setTotalPrice(totalPrice);
+
+            //save
+            invoiceRepository.save(invoice);
+
+            return generateInvoiceResponse(invoice);
+
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
     private InvoiceResponse generateInvoiceResponse(Invoice invoice) {
+
+        log.info("invoice id : {}", invoice.getId());
+        log.info("invoice item size : {}", invoice.getInvoiceItems().size());
 
         Set<InvoiceItem> invoiceItems = invoice.getInvoiceItems();
         Set<InvoiceItemResponse> items = new HashSet<>();
 
         for (InvoiceItem iit : invoiceItems) {
+            log.info("invoice id : {}", iit.getInvoice().getId());
             InvoiceItemResponse item = InvoiceItemResponse.builder()
                     .name(iit.getItem().getName())
                     .price(iit.getItem().getPrice())
