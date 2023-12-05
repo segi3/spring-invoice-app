@@ -1,14 +1,19 @@
 package com.nizar.invoice.delivery.api;
 
 import com.nizar.invoice.exception.ResourceNotFoundException;
+import com.nizar.invoice.models.Invoice;
 import com.nizar.invoice.payload.request.invoice.InvoiceDeleteRequest;
 import com.nizar.invoice.payload.request.invoice.InvoiceRequest;
 import com.nizar.invoice.payload.request.invoice.InvoiceUpdateRequest;
+import com.nizar.invoice.payload.response.invoice.InvoicePaginatedResponse;
 import com.nizar.invoice.payload.response.invoice.InvoiceResponse;
 import com.nizar.invoice.usecase.InvoiceUsecase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,16 +31,32 @@ public class InvoiceController {
     private InvoiceUsecase invoiceUsecase;
 
     @GetMapping("/all")
-    public ResponseEntity<List<InvoiceResponse>> getAllInvoice() {
+    public ResponseEntity<InvoicePaginatedResponse> getAllInvoice(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "3") int size
+    ) {
+
+        Pageable paging = PageRequest.of(page, size);
 
         try {
-            List<InvoiceResponse> invoices = invoiceUsecase.getAllInvoices();
 
-            if (invoices.isEmpty()) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
+            Page<Invoice> invoices = invoiceUsecase.findAllPaginated(paging);
 
-            return new ResponseEntity<>(invoices, HttpStatus.OK);
+            // create paging response
+//            Map<String, Object> response = new HashMap<>();
+//            response.put("currentPage", invoices.getNumber());
+//            response.put("totalItems", invoices.getTotalElements());
+//            response.put("totalPages", invoices.getTotalPages());
+//            response.put("invoices", invoices.getContent());
+
+            InvoicePaginatedResponse response = InvoicePaginatedResponse.builder()
+                    .currentPage(invoices.getNumber())
+                    .totalItems(invoices.getTotalElements())
+                    .totalPages(invoices.getTotalPages())
+                    .invoices(invoices.getContent())
+                    .build();
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
