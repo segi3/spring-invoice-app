@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -31,6 +32,7 @@ public class InvoiceController {
     private InvoiceUsecase invoiceUsecase;
 
     @GetMapping("/all")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<InvoicePaginatedResponse> getAllInvoice(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size
@@ -63,6 +65,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/invoice/{id}")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<InvoiceResponse> getInvoiceById(@PathVariable("id") String id) {
 
         try {
@@ -76,6 +79,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/invoice/create")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<InvoiceResponse> createInvoice(@RequestBody InvoiceRequest request) {
         try {
 
@@ -94,6 +98,7 @@ public class InvoiceController {
 
 
     @PostMapping("/invoice/delete")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<InvoiceResponse> deleteOneInvoice(@RequestBody InvoiceDeleteRequest request) {
         try {
 
@@ -110,6 +115,7 @@ public class InvoiceController {
     }
 
     @PostMapping("/invoice/update")
+    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<InvoiceResponse> updateInvoice(@RequestBody InvoiceUpdateRequest request) {
         try {
 
