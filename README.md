@@ -27,5 +27,9 @@ git clone https://github.com/segi3/spring-invoice-app.git
 
 By default app will run on port `8080`, swagger API dashboard can be accessed on `http://localhost:8080/swagger-ui/index.html`
 
+## Swagger Dashboard
+
+![swag!](https://raw.githubusercontent.com/segi3/spring-invoice-app/main/readme_files/swagger-dashboard.png "swag")
+
 
 
