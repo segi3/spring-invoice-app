@@ -1,9 +1,12 @@
 package com.nizar.invoice.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -14,6 +17,10 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "invoices")
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Invoice {
 
     @Id
@@ -37,9 +44,6 @@ public class Invoice {
     @OneToMany(mappedBy = "invoice")
     @JsonManagedReference
     private Set<InvoiceItem> invoiceItems = new HashSet<>();
-
-    public Invoice() {
-    }
 
     public Invoice(User user, Date dueDate, double totalPrice) {
         this.user = user;
